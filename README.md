@@ -133,4 +133,55 @@ while True:
 
 
 
-TASK 3-
+#TASK 3- Recomendation system
+
+
+import pandas as pd
+from surprise import Dataset, Reader
+from surprise.model_selection import train_test_split
+from surprise import SVD
+from surprise import accuracy
+
+# Load the MovieLens dataset
+# You can download the dataset from: https://grouplens.org/datasets/movielens/
+ratings = pd.read_csv('ratings.csv')  # Replace with your dataset location
+# If you don't have the dataset, you can use the built-in MovieLens dataset provided by Surprise.
+
+# Define a custom dataset
+reader = Reader(rating_scale=(1, 5))
+data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], reader=reader)
+
+# Split the dataset into a training set and a testing set
+trainset, testset = train_test_split(data, test_size=0.2)
+
+# Create a recommendation model (SVD, a matrix factorization method)
+model = SVD(n_factors=100, n_epochs=20, verbose=True)
+
+# Train the model on the training set
+model.fit(trainset)
+
+# Make recommendations for a specific user
+user_id = 1  # Replace with the user ID for whom you want to make recommendations
+user_movies = ratings[ratings['userId'] == user_id]['movieId']
+unseen_movies = list(set(ratings['movieId']) - set(user_movies))
+
+predictions = [model.predict(user_id, movie_id) for movie_id in unseen_movies]
+
+# Sort the predictions by estimated ratings in descending order
+predictions.sort(key=lambda x: x.est, reverse=True)
+
+# Get the top N movie recommendations
+top_n = 10  # Number of recommendations to make
+top_predictions = predictions[:top_n]
+
+# Display the top N movie recommendations
+for prediction in top_predictions:
+    print(f'Movie ID: {prediction.iid}, Estimated Rating: {prediction.est}')
+
+# Evaluate the model's performance
+test_predictions = model.test(testset)
+rmse = accuracy.rmse(test_predictions)
+mae = accuracy.mae(test_predictions)
+print(f'RMSE: {rmse}')
+print(f'MAE: {mae}')
+
